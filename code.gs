@@ -19,8 +19,7 @@ function main() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   
   var data = sheet.getDataRange().getValues();
-
-  // get last row in the sheet
+  
   var lastRow = sheet.getLastRow();
 
   var isbn = data[lastRow-1][COLUMN_NUMBER_ISBN-1];
@@ -34,8 +33,10 @@ function main() {
     var bookInfo = lookupByISBN(isbn);
 
     if (bookInfo) {
-      //extract book info to update spreadsheet
-      sheet=updateSheet(sheet, lastRow, bookInfo);
+      // extract book info
+      data=extractBook(bookInfo);
+      // update spreadsheet
+      sheet=updateSheet(sheet, lastRow, data);
       // apply all pending spreadsheet changes
       SpreadsheetApp.flush();                 
     }
@@ -45,36 +46,6 @@ function main() {
       return false;
     }
   }
-}
-    
-function updateSheet(sheet,lastRow, bookInfo) {
-  // extract book info
-  var title = (bookInfo["volumeInfo"]["title"]);            
-  var authors = (bookInfo["volumeInfo"]["authors"]);
-  var year = (bookInfo["volumeInfo"]["publishedDate"]);
-  // extract yyyy from published date
-  if (year != null ) {
-    var year4 = year.substring(0,4);} 
-  var categories = (bookInfo["volumeInfo"]["categories"]);
-  var lang = (bookInfo["volumeInfo"]["language"]);   
-  var description = (bookInfo["volumeInfo"]["description"]);  
-  // searchInfo.textSnippet is shorter than description
-  // If this also exists, overwrite the description above
-  if (bookInfo["searchInfo"] != null){
-    if (bookInfo["searchInfo"]["textSnippet"] != null) {
-      description = (bookInfo["searchInfo"]["textSnippet"]);  } }    
-
-  var s=sheet;        
-  // write respective info into column cells of last row
-  s.getRange(lastRow, COLUMN_NUMBER_TITLE).setValue(title);
-  s.getRange(lastRow, COLUMN_NUMBER_AUTHORS).setValue(authors);
-  s.getRange(lastRow, COLUMN_NUMBER_YEAR).setValue(year4);
-  s.getRange(lastRow, COLUMN_NUMBER_CATEGORIES).setValue(categories);
-  s.getRange(lastRow, COLUMN_NUMBER_LANG).setValue(lang);
-  s.getRange(lastRow, COLUMN_NUMBER_DESCRIPTION).setValue(description);
-
-  return s;              
-  
 }
 
 // invoke Google Books API to get a JSON file of the book info
@@ -96,4 +67,38 @@ function lookupByISBN(isbn) {
 
   // our search returns no result
   return false;
+}
+
+function extractBook(bookInfo) {
+  var title = (bookInfo["volumeInfo"]["title"]);            
+  var authors = (bookInfo["volumeInfo"]["authors"]);
+  var year = (bookInfo["volumeInfo"]["publishedDate"]);
+  // extract yyyy from published date
+  if (year != null ) {
+    var year4 = year.substring(0,4);} 
+  var categories = (bookInfo["volumeInfo"]["categories"]);
+  var lang = (bookInfo["volumeInfo"]["language"]);   
+  var description = (bookInfo["volumeInfo"]["description"]);  
+  // searchInfo.textSnippet is shorter than description
+  // If this also exists, overwrite the description above
+  if (bookInfo["searchInfo"] != null){
+    if (bookInfo["searchInfo"]["textSnippet"] != null) {
+      description = (bookInfo["searchInfo"]["textSnippet"]);  } }    
+
+  var bookdata = {title:title, authors:authors, year:year, categories:categories, lang:lang, description:description};
+
+  return bookdata;
+}
+
+function updateSheet(sheet,lastRow, data) {
+  var s=sheet;        
+  // write respective info into column cells of last row
+  s.getRange(lastRow, COLUMN_NUMBER_TITLE).setValue(data['title']);
+  s.getRange(lastRow, COLUMN_NUMBER_AUTHORS).setValue(data['authors']);
+  s.getRange(lastRow, COLUMN_NUMBER_YEAR).setValue(data['year4']);
+  s.getRange(lastRow, COLUMN_NUMBER_CATEGORIES).setValue(data['categories']);
+  s.getRange(lastRow, COLUMN_NUMBER_LANG).setValue(data['lang']);
+  s.getRange(lastRow, COLUMN_NUMBER_DESCRIPTION).setValue(data['description']);
+
+  return s;               
 }
