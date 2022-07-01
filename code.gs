@@ -30,13 +30,13 @@ function main() {
   // edit author name, etc.
   if (isbn!='' && title == '' ) {
     // get book info from Google Books API with ISBN from last row  
-    var bookInfo = lookupByISBN(isbn);
+    var book = getBookByISBN(isbn);
 
-    if (bookInfo) {
+    if (book) {
       // extract book info
-      data=extractBook(bookInfo);
+      var bookFields=extractBookMetadata(book);
       // update spreadsheet
-      sheet=updateSheet(sheet, lastRow, data);
+      sheet=updateSheet(sheet, lastRow, bookFields);
       // apply all pending spreadsheet changes
       SpreadsheetApp.flush();                 
     }
@@ -49,7 +49,7 @@ function main() {
 }
 
 // invoke Google Books API to get a JSON file of the book info
-function lookupByISBN(isbn) {
+function getBookByISBN(isbn) {
   
   var url = API_URL + "&q=isbn:" + isbn;
 
@@ -61,7 +61,6 @@ function lookupByISBN(isbn) {
     // for multiple results
     // get only the 1st item that should be closest match
     var book = results.items[0];
-    Logger.log("Book found")
     return book;
   } 
 
@@ -69,36 +68,36 @@ function lookupByISBN(isbn) {
   return false;
 }
 
-function extractBook(bookInfo) {
-  var title = (bookInfo["volumeInfo"]["title"]);            
-  var authors = (bookInfo["volumeInfo"]["authors"]);
-  var year = (bookInfo["volumeInfo"]["publishedDate"]);
+function extractBookMetadata(book) {
+  var title = (book["volumeInfo"]["title"]);            
+  var authors = (book["volumeInfo"]["authors"]);
+  var year = (book["volumeInfo"]["publishedDate"]);
   // extract yyyy from published date
   if (year != null ) {
     var year4 = year.substring(0,4);} 
-  var categories = (bookInfo["volumeInfo"]["categories"]);
-  var lang = (bookInfo["volumeInfo"]["language"]);   
-  var description = (bookInfo["volumeInfo"]["description"]);  
+  var categories = (book["volumeInfo"]["categories"]);
+  var lang = (book["volumeInfo"]["language"]);   
+  var description = (book["volumeInfo"]["description"]);  
   // searchInfo.textSnippet is shorter than description
   // If this also exists, overwrite the description above
-  if (bookInfo["searchInfo"] != null){
-    if (bookInfo["searchInfo"]["textSnippet"] != null) {
-      description = (bookInfo["searchInfo"]["textSnippet"]);  } }    
+  if (book["searchInfo"] != null){
+    if (book["searchInfo"]["textSnippet"] != null) {
+      description = (book["searchInfo"]["textSnippet"]);  } }    
 
   var bookdata = {title:title, authors:authors, year:year, categories:categories, lang:lang, description:description};
 
   return bookdata;
 }
 
-function updateSheet(sheet,lastRow, data) {
+function updateSheet(sheet,lastRow, bookFields) {
   var s=sheet;        
   // write respective info into column cells of last row
-  s.getRange(lastRow, COLUMN_NUMBER_TITLE).setValue(data['title']);
-  s.getRange(lastRow, COLUMN_NUMBER_AUTHORS).setValue(data['authors']);
-  s.getRange(lastRow, COLUMN_NUMBER_YEAR).setValue(data['year4']);
-  s.getRange(lastRow, COLUMN_NUMBER_CATEGORIES).setValue(data['categories']);
-  s.getRange(lastRow, COLUMN_NUMBER_LANG).setValue(data['lang']);
-  s.getRange(lastRow, COLUMN_NUMBER_DESCRIPTION).setValue(data['description']);
+  s.getRange(lastRow, COLUMN_NUMBER_TITLE).setValue(bookFields['title']);
+  s.getRange(lastRow, COLUMN_NUMBER_AUTHORS).setValue(bookFields['authors']);
+  s.getRange(lastRow, COLUMN_NUMBER_YEAR).setValue(bookFields['year4']);
+  s.getRange(lastRow, COLUMN_NUMBER_CATEGORIES).setValue(bookFields['categories']);
+  s.getRange(lastRow, COLUMN_NUMBER_LANG).setValue(bookFields['lang']);
+  s.getRange(lastRow, COLUMN_NUMBER_DESCRIPTION).setValue(bookFields['description']);
 
   return s;               
 }
